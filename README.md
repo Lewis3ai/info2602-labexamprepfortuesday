@@ -1,3 +1,8 @@
+# REMEMBER:
+Ask co pilot for help for running flask pip install. quickest way to get it working
+
+remember to enter python3 -m App.main in terminal to get app running to open browser
+
 # Flask Starter Template fo REPLit
 A template for simple flask projects. For production projects with testing and deployment it is recommended to use [flaskmvc](https://gitpod.io/#https://github.com/uwidcit/flaskmvc).
 
