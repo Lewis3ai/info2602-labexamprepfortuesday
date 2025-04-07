@@ -1,9 +1,8 @@
 import os, csv
-from flask import Flask, redirect, render_template, jsonify, request, send_from_directory, flash, url_for
-from sqlalchemy.exc import OperationalError, IntegrityError
+from flask import Flask, redirect, render_template, request, flash, url_for
+from sqlalchemy.exc import IntegrityError
 from App.models import db, User, Student, Course, StudentCourse
 from datetime import timedelta
-
 from flask_jwt_extended import (
     JWTManager,
     create_access_token,
@@ -12,7 +11,6 @@ from flask_jwt_extended import (
     current_user,
     set_access_cookies,
     unset_jwt_cookies,
-    current_user,
 )
 
 
@@ -23,41 +21,26 @@ def create_app():
   app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.root_path, 'data.db')
   app.config['DEBUG'] = True
   app.config['SECRET_KEY'] = 'MySecretKey'
-  app.config['PREFERRED_URL_SCHEME'] = 'https'
-  app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
-  app.config['JWT_REFRESH_COOKIE_NAME'] = 'refresh_token'
   app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
-  app.config["JWT_COOKIE_SECURE"] = True
+  app.config["JWT_COOKIE_SECURE"] = False
   app.config["JWT_SECRET_KEY"] = "super-secret"
-  app.config["JWT_COOKIE_CSRF_PROTECT"] = False
   app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)
 
   app.app_context().push()
   return app
 
-
 app = create_app()
 db.init_app(app)
-
 jwt = JWTManager(app)
 
-
 @jwt.user_identity_loader
-def user_identity_lookup(user):
-  return user
-
-
+def user_identity_lookup(user): return user
 @jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data):
-  identity = jwt_data["sub"]
-  return User.query.get(identity)
-
-
+def user_lookup_callback(_jwt_header, jwt_data): return User.query.get(jwt_data["sub"])
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
   flash("Your session has expired. Please log in again.")
   return redirect(url_for('login'))
-
 
 def parse_students():
   with open('students.csv', mode='r', encoding='utf-8') as file:
@@ -73,38 +56,32 @@ def parse_students():
     db.session.commit()
 
 def create_users():
-  rob = User(username="rob", password="robpass")
-  bob = User(username="bob", password="bobpass")
-  sally = User(username="sally", password="sallypass")
-  pam = User(username="pam", password="pampass")
-  chris = User(username="chris", password="chrispass")
-  db.session.add_all([rob, bob])
+  db.session.add_all([
+    User(username="rob", password="robpass"),
+    User(username="bob", password="bobpass")
+  ])
   db.session.commit()
-
 
 def create_courses():
-  info1601 = Course(code="INFO1601", name="Intro To WWW Programming")
-  info2602 = Course(code="INFO2602", name="Web Programming & Technologies 1")
-  info1600 = Course(code="INFO1600", name="IT Concepts")
-  comp2605 = Course(code="COMP2605", name="Database Management Systems")
-  db.session.add_all([info1601, info2602, info1600, comp2605])
+  db.session.add_all([
+    Course(code="INFO1601", name="Intro To WWW Programming"),
+    Course(code="INFO2602", name="Web Programming & Technologies 1"),
+    Course(code="INFO1600", name="IT Concepts"),
+    Course(code="COMP2605", name="Database Management Systems")
+  ])
   db.session.commit()
 
-
-# uncomment after models are implemented
 def initialize_db():
   db.drop_all()
   db.create_all()
   create_users()
-  # create_courses()
-  # parse_students()
-  print('database intialized')
-
+  create_courses()
+  parse_students()
+  print('database initialized')
 
 @app.route('/')
 def login():
   return render_template('login.html')
-
 
 @app.route('/login', methods=['POST'])
 def login_action():
@@ -120,20 +97,54 @@ def login_action():
     flash('Invalid username or password')
     return redirect(url_for('login'))
 
-
 @app.route('/app')
 @app.route('/app/<code>')
 @jwt_required()
 def home(code="INFO1601"):
-  return render_template('index.html', user=current_user)
+  selected_course = Course.query.get(code)
+  if not selected_course:
+    flash("Invalid course code.")
+    return redirect(url_for('home'))
+
+  all_courses = Course.query.all()
+  students_in_course = selected_course.students
+  students_not_in_course = Student.query.filter(~Student.courses.any(code=code)).all()
+
+  return render_template(
+    'index.html',
+    user=current_user,
+    course=selected_course,
+    students_in=students_in_course,
+    students_out=students_not_in_course,
+    all_courses=all_courses
+  )
+
+@app.route('/add_student/<student_id>/<course_code>')
+@jwt_required()
+def add_student(student_id, course_code):
+  student = Student.query.get(student_id)
+  course = Course.query.get(course_code)
+  if student and course:
+    course.students.append(student)
+    db.session.commit()
+  return redirect(url_for('home', code=course_code))
+
+@app.route('/remove_student/<student_id>/<course_code>')
+@jwt_required()
+def remove_student(student_id, course_code):
+  student = Student.query.get(student_id)
+  course = Course.query.get(course_code)
+  if student and course:
+    course.students.remove(student)
+    db.session.commit()
+  return redirect(url_for('home', code=course_code))
 
 @app.route('/logout')
 def logout():
   response = redirect(url_for('login'))
   unset_jwt_cookies(response)
-  flash('logged out')
+  flash('Logged out')
   return response
-
 
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=8080, debug=True)

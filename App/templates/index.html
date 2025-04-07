@@ -29,6 +29,11 @@
         <a href="#" style="font-size=1.5em" class="brand-logo left">Logged in As: <!-- Username --> </a>
         <ul id="nav-mobile" class="right hide-on-med-and-down">
           <li><a href="/logout">Logout</a></li>
+          {% for c in all_courses %}
+            <li class="{% if c.code == course.code %}active{% endif %}">
+              <a href="{{ url_for('home', code=c.code) }}">{{ c.code }}</a>
+            </li>
+          {% endfor %}
         </ul>
       </div>
       <nav>
@@ -67,7 +72,7 @@
       </div>
       <div class="col s12 m3 l4">
         <!-- show course name here -->
-        <h1>Class List for </h1> 
+        <h1>Class List for {{ course.code }}</h1>
       </div>
     </div>
 
@@ -76,7 +81,15 @@
       <section class="col s12 m9 l8" style="overflow-y:scroll; height: 70vh">
         
         <!-- show students currently not in course here -->
-        
+        {% for student in students_out %}
+          <div class="card">
+            <div class="card-content">
+              <span class="card-title">{{ student.first_name }} {{ student.last_name }}</span>
+              <p>{{ student.programme }} ({{ student.id }})</p>
+              <a class="btn" href="{{ url_for('add_student', student_id=student.id, course_code=course.code) }}">Add</a>
+            </div>
+          </div>
+        {% endfor %}
       </section>
 
       <section class="col s12 m3 l4" style="overflow-y:scroll; height: 70vh">
@@ -84,7 +97,14 @@
         <ul class="collection">
 
           <!-- show students currently in course here -->
-          
+          {% for student in students_in %}
+            <li class="collection-item">
+              {{ student.first_name }} {{ student.last_name }} ({{ student.id }})
+              <a class="secondary-content" href="{{ url_for('remove_student', student_id=student.id, course_code=course.code) }}">
+                <i class="material-icons">delete</i>
+              </a>
+            </li>
+          {% endfor %}
         </ul>
 
       
