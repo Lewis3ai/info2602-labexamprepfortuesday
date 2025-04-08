@@ -78,38 +78,43 @@
 
     <div class="row">
 
+      <!-- LEFT COLUMN: Students NOT in course -->
       <section class="col s12 m9 l8" style="overflow-y:scroll; height: 70vh">
-        
-        <!-- show students currently not in course here -->
-        {% for student in students_out %}
-          <div class="card">
-            <div class="card-content">
-              <span class="card-title">{{ student.first_name }} {{ student.last_name }}</span>
-              <p>{{ student.programme }} ({{ student.id }})</p>
-              <a class="btn" href="{{ url_for('add_student', student_id=student.id, course_code=course.code) }}">Add</a>
+        <div class="row">
+          {% for student in students_out %}
+            <div class="col s12 m4">
+              <div class="card">
+                <div class="card-image center-align" style="padding-top: 20px;">
+                  <img src="{{ student.picture }}" alt="Student Picture" class="circle responsive-img" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+                <div class="card-content center-align">
+                  <span class="card-title">{{ student.first_name }} {{ student.last_name }}</span>
+                  <p>{{ student.programme }} ({{ student.id }})</p>
+                </div>
+                <div class="card-action center-align">
+                  <a class="btn waves-effect waves-light" href="{{ url_for('add_student', student_id=student.id, course_code=course.code) }}">Enrol</a>
+                </div>
+              </div>
             </div>
-          </div>
-        {% endfor %}
+          {% endfor %}
+        </div>
       </section>
-
+    
+      <!-- RIGHT COLUMN: Students currently in course -->
       <section class="col s12 m3 l4" style="overflow-y:scroll; height: 70vh">
-
-        <ul class="collection">
-
-          <!-- show students currently in course here -->
+        <ul class="collection with-header">
+          <li class="collection-header"><h5>Enrolled Students</h5></li>
           {% for student in students_in %}
             <li class="collection-item">
               {{ student.first_name }} {{ student.last_name }} ({{ student.id }})
-              <a class="secondary-content" href="{{ url_for('remove_student', student_id=student.id, course_code=course.code) }}">
-                <i class="material-icons">delete</i>
-              </a>
+              <div class="card-action right-align">
+              <a class="btn btn waves-effect waves-light" href="{{ url_for('remove_student', student_id=student.id, course_code=course.code) }}">Remove</a>
+            </div>
             </li>
           {% endfor %}
         </ul>
-
-      
       </section>
-
+    
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
